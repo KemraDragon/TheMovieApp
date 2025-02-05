@@ -52,7 +52,7 @@ class MoviesViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
     }
-
+    
     private func bindViewModel() {
         let searchObservable = searchBar.rx.text.orEmpty
             .debounce(.milliseconds(300), scheduler: MainScheduler.instance)

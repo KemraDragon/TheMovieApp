@@ -10,18 +10,19 @@ import RxSwift
 import RxCocoa
 
 class MoviesViewModel {
-
+    
     private let disposeBag = DisposeBag()
     private let allMovies = BehaviorSubject<[Movie]>(value: []) // ✅ Todas las películas
     let searchQuery = PublishSubject<String>() // ✅ Consulta de búsqueda
     let filteredMovies = BehaviorSubject<[Movie]>(value: []) // ✅ Películas filtradas
     private var currentPage = 1 // ✅ Control de página
-
+    
     func fetchMovies() {
         GetPopularMoviesUseCase(page: currentPage).execute()
             .observeOn(MainScheduler.instance)
             .subscribe(
                 onNext: { movies in
+                    
                     print("🔍 API Response: \(movies.count) películas recibidas en página \(self.currentPage)")
                     self.allMovies.onNext(movies)
                     self.filteredMovies.onNext(movies) // ✅ Inicialmente muestra todas
@@ -31,7 +32,7 @@ class MoviesViewModel {
                 }
             )
             .disposed(by: disposeBag)
-
+        
         searchQuery
             .withLatestFrom(allMovies) { query, movies in
                 return query.isEmpty ? movies : movies.filter { $0.title.lowercased().contains(query.lowercased()) }
@@ -39,11 +40,11 @@ class MoviesViewModel {
             .bind(to: filteredMovies)
             .disposed(by: disposeBag)
     }
-
+    
     // ✅ Nueva función para cargar más películas cuando se detecta el final del scroll
     func fetchMoreMovies() {
         currentPage += 1 // ✅ Avanzar a la siguiente página
-
+        
         GetPopularMoviesUseCase(page: currentPage).execute()
             .observeOn(MainScheduler.instance)
             .subscribe(
@@ -58,6 +59,13 @@ class MoviesViewModel {
                     print("❌ Error fetching more movies: \(error.localizedDescription)")
                 }
             )
+            .disposed(by: disposeBag)
+        
+        searchQuery
+            .withLatestFrom(allMovies) { query, movies in
+                return query.isEmpty ? movies : movies.filter { $0.title.lowercased().contains(query.lowercased()) }
+            }
+            .bind(to: filteredMovies)
             .disposed(by: disposeBag)
     }
 }
