@@ -10,9 +10,30 @@ import RxSwift
 import RxCocoa
 
 class MoviesViewModel {
+
+    private var watchedMovies: [Movie] = []
+
+    func isWatched(movie: Movie) -> Bool {
+        return watchedMovies.contains { $0.id == movie.id }
+    }
+
+    func toggleWatchedState(for index: Int) {
+        let currentMovies = try? allMovies.value() // Obtener lista actual de películas
+        guard let movies = currentMovies, movies.indices.contains(index) else { return }
+
+        let movie = movies[index]
+
+        if let watchedIndex = watchedMovies.firstIndex(where: { $0.id == movie.id }) {
+            watchedMovies.remove(at: watchedIndex) // Si está en la lista, lo quitamos
+        } else {
+            watchedMovies.append(movie) // Si no está, lo agregamos
+        }
+
+        allMovies.onNext(movies) // Actualizar la lista de películas
+    }
     
     private let disposeBag = DisposeBag()
-    private let allMovies = BehaviorSubject<[Movie]>(value: []) // ✅ Todas las películas
+    let allMovies = BehaviorSubject<[Movie]>(value: []) // ✅ Todas las películas
     let searchQuery = PublishSubject<String>() // ✅ Consulta de búsqueda
     let filteredMovies = BehaviorSubject<[Movie]>(value: []) // ✅ Películas filtradas
     private var currentPage = 1 // ✅ Control de página

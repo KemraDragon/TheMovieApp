@@ -9,8 +9,7 @@ import UIKit
 import RxSwift
 import RxCocoa
 
-class MoviesViewController: UIViewController {
-
+class MoviesViewController: UIViewController, UITableViewDelegate {
     private let viewModel = MoviesViewModel()
     private let disposeBag = DisposeBag()
 
@@ -24,6 +23,7 @@ class MoviesViewController: UIViewController {
     private let tableView: UITableView = {
         let tableView = UITableView()
         tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.register(MovieCell.self, forCellReuseIdentifier: MovieCell.identifier)
         return tableView
     }()
 
@@ -32,14 +32,13 @@ class MoviesViewController: UIViewController {
         setupUI()
         bindViewModel()
         viewModel.fetchMovies()
+        tableView.delegate = self
     }
 
     private func setupUI() {
         view.backgroundColor = .white
         view.addSubview(searchBar)
         view.addSubview(tableView)
-
-        tableView.register(MovieCell.self, forCellReuseIdentifier: MovieCell.identifier)
 
         NSLayoutConstraint.activate([
             searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -52,37 +51,33 @@ class MoviesViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
     }
-    
+
     private func bindViewModel() {
-        let searchObservable = searchBar.rx.text.orEmpty
-            .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
-            .distinctUntilChanged()
-
-        searchObservable
-            .bind(to: viewModel.searchQuery) // ✅ Se enlaza correctamente con searchQuery
-            .disposed(by: disposeBag)
-
         viewModel.filteredMovies
             .observeOn(MainScheduler.instance)
             .bind(to: tableView.rx.items(cellIdentifier: MovieCell.identifier, cellType: MovieCell.self)) { row, movie, cell in
-                cell.configure(with: movie)
+                let isWatched = self.viewModel.isWatched(movie: movie)
+                cell.configure(with: movie, isWatched: isWatched)
+                cell.delegate = self
             }
             .disposed(by: disposeBag)
 
-        // ✅ Detectar cuando el usuario llega al final del scroll para cargar más películas
-        tableView.rx.contentOffset
-            .map { [weak self] contentOffset in
-                guard let self = self else { return false }
-                let visibleHeight = self.tableView.frame.height
-                let yOffset = contentOffset.y
-                let contentHeight = self.tableView.contentSize.height
-                return yOffset > contentHeight - visibleHeight - 100 // ✅ Umbral de 100px antes de llegar al final
-            }
+        searchBar.rx.text.orEmpty
             .distinctUntilChanged()
-            .filter { $0 } // ✅ Solo continúa si es `true`
-            .subscribe(onNext: { [weak self] _ in
-                self?.viewModel.fetchMoreMovies() // ✅ Llamar a la función para cargar más películas
-            })
+            .bind(to: viewModel.searchQuery)
             .disposed(by: disposeBag)
     }
 }
+
+extension MoviesViewController: MovieCellDelegate {
+    func didTapWatched(for movie: Movie) {
+        guard let index = try? viewModel.allMovies.value().firstIndex(where: { $0.id == movie.id }) else { return }
+        
+        viewModel.toggleWatchedState(for: index)
+
+        let indexPath = IndexPath(row: index, section: 0)
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
+}
+
+
