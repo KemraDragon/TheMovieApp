@@ -8,18 +8,6 @@
 import Foundation
 import RxSwift
 
-// Estructura correcta para reflejar la API
-struct MovieResponse: Codable {
-    let results: [Movie] // ✅ La API devuelve los datos dentro de "results"
-}
-
-struct Movie: Codable {
-    let id: Int
-    let title: String
-    let overview: String
-    let poster_path: String?
-}
-
 class GetPopularMoviesUseCase {
     
     private let page: Int // ✅ Se define la página como parámetro

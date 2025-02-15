@@ -9,22 +9,6 @@ import Foundation
 import RxSwift
 import Foundation
 
-struct MovieDetail: Decodable {
-    let title: String
-    let release_date: String?
-    let vote_average: Double?
-    let overview: String?
-    let poster_path: String?
-    let genres: [Genre]?
-    let runtime: Int?
-    let revenue: Int?
-}
-
-struct Genre: Decodable {
-    let id: Int
-    let name: String
-}
-
 class GetMovieDetailUseCase {
     private let apiKey = "d4e886f147e50185fd7a4907a8b7305e"
 
